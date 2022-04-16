@@ -7,7 +7,8 @@ public class test : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        MapTileGenerator map = new MapTileGenerator(5, 5, 10);
+        MapTileGenerator map = new MapTileGenerator(50, 50, 10, Vector3.zero);
+        
     }
 
 }

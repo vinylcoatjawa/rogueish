@@ -6,52 +6,52 @@ public class MapTileGenerator
 {
     private int tileHeigth, tileWidth;
     private float cellSize, gridOffset;
-    int[,] cells;
+    private Vector3 originPosition;
+    //int[,] cells;
 
 
-    public MapTileGenerator(int width, int heigth, float cellSize)
+    public MapTileGenerator(int width, int heigth, float cellSize, Vector3 originPosition)
     {
         this.tileWidth = width;
         this.tileHeigth = heigth;
         this.cellSize = cellSize;
-        gridOffset = cellSize / 2;
+        this.originPosition = originPosition;
+        gridOffset = cellSize - 1 / cellSize;
+        int roomSize = 10;
 
-        cells = new int[width, heigth];
+        //cells = new int[width, heigth];
 
-        for (int i = -width; i < width; i++)
+        for (int x = -width; x < width + 1; x++)
         {
-            for (int j = -heigth; j < heigth; j++)
+            for (int z = -heigth; z < heigth + 1; z++)
             {
-                Vector3 tilePosition = GetWorldCoords(i, j);
+                int blockYValue;
+                if (GetPerlinDepth(x, z, 0.66f) > .6f) { blockYValue = 1; } else blockYValue = 0; // needs logic to smooth this, also add logic to make it harsher the farther we are from origin
+                Vector3 tilePosition = GetWorldCoords(x, blockYValue, z);
                 Vector3 tileRotation = new Vector3(90, 0, 0);
                 GameObject tile = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                tile.transform.localScale = new Vector3(cellSize - 1 / cellSize, cellSize - 1 / cellSize, cellSize - 1 / cellSize);
+                tile.transform.localScale = new Vector3(gridOffset, gridOffset, gridOffset);
                 tile.transform.position = tilePosition;
                 tile.transform.eulerAngles = tileRotation;
 
-                Debug.Log("if i: " + i + " and j: " + j + " then the noise is : " + GetPerlinDepth(i, j, 0.66f));
-
-                // add text 
-                //TextMesh tileText = tile.AddComponent<TextMesh>();
-                //tileText.color = Color.red;
-                //tileText.text = "(" + i + ", " + j + ")";
-
-                //gridSquare.transform.position = GetWorldCoords(i, j);
-                //gridSquare.transform.eulerAngles = new Vector3(90, 0, 0);
-
-                //GameObject gridSquare = new GameObject("Grid square at: (" + i + ",  " + j + " )", typeof(TextMesh));
-
-                //Vector3 gridSquareRot = gridSquare.transform.rotation.eulerAngles;
-
-                //TextMesh text = gridSquare.GetComponent<TextMesh>();
-                //text.color = Color.red;
-                // text.text = "(" + i + ", " + j + ")";
-                //Debug.DrawLine(GetWorldCoords(i, j) + new Vector3(cellSize, 0, cellSize) * .5f, GetWorldCoords(i, j + 1) + new Vector3(cellSize, 0, cellSize) * .5f, Color.blue, 100f);
-                //Debug.DrawLine(GetWorldCoords(i, j) + new Vector3(cellSize, 0, cellSize) * .5f, GetWorldCoords(i + 1, j) + new Vector3(cellSize, 0, cellSize) * .5f, Color.blue, 100f);
+                Debug.Log("if i: " + x + " and j: " + z + " then the noise is : " + GetPerlinDepth(x, z, 0.66f));
             }
         }
-        //Debug.DrawLine(GetWorldCoords(width, heigth) + new Vector3(cellSize, 0, cellSize) * .5f, GetWorldCoords(width, heigth) + new Vector3(cellSize, 0, cellSize) * .5f, Color.blue, 100f);
-        //Debug.DrawLine(GetWorldCoords(width, 0) + new Vector3(cellSize, 0, cellSize) * .5f, GetWorldCoords(width, heigth) + new Vector3(cellSize, 0, cellSize) * .5f, Color.blue, 100f);
+
+        for (int x = -width; x < width; x += roomSize)
+        {
+            for (int z = -heigth; z < heigth; z += roomSize)
+            {
+                Vector3 tilePosition = GetWorldCoords(x, 5, z);
+                Vector3 tileRotation = new Vector3(90, 0, 0);
+                GameObject tile = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                tile.transform.localScale = new Vector3(gridOffset, gridOffset, gridOffset);
+                tile.transform.position = tilePosition;
+                tile.transform.eulerAngles = tileRotation;
+                tile.GetComponent<Renderer>().material.color = Color.red;
+            }
+        }
+
 
     }
 
@@ -59,13 +59,41 @@ public class MapTileGenerator
     {
         float xNoise = x / detailScale;
         float zNoise = z / detailScale;
-        Debug.Log(xNoise);
         return Mathf.PerlinNoise(xNoise, zNoise);
     }
 
-    private Vector3 GetWorldCoords(int x, int z, int y = 0)
+    private Vector3 GetWorldCoords(int x, int y, int z)
     {
-        return new Vector3(x, y, z) * cellSize;
+        return new Vector3(x, y, z) * cellSize + originPosition;
+    }
+
+    private void GetXY(Vector3 worldPosition, out int x, out int z)
+    {
+        x = Mathf.FloorToInt((worldPosition - originPosition).x / cellSize);
+        z = Mathf.FloorToInt((worldPosition - originPosition).z / cellSize);
+    }
+
+    public void GenerateWalls(int width, int height, int roomSize, Vector3 originPosition)
+    {
+        int levelWidth = 2 * width + 1;
+        int levelHeight = 2 * height + 1;
+
+        for (int x = -width; x < width; x += roomSize)
+        {
+            for (int z = -height; z < height; z += roomSize)
+            {
+                Vector3 tilePosition = GetWorldCoords(x, 5, z);
+                Vector3 tileRotation = new Vector3(90, 0, 0);
+                GameObject tile = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                tile.transform.localScale = new Vector3(gridOffset, gridOffset, gridOffset);
+                tile.transform.position = tilePosition;
+                tile.transform.eulerAngles = tileRotation;
+                tile.GetComponent<Renderer>().material.color = Color.red;
+            }
+        }
+
+
+
     }
 
 }
