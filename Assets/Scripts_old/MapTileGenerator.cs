@@ -6,7 +6,7 @@ using System.Collections.Generic;
 
 
 
-public class LevelGenerator
+/*public class LevelGenerator
 { 
     
     private int levelWidth, levelHeight, seed, roomSideLength, roomX, roomZ;
@@ -29,8 +29,8 @@ public class LevelGenerator
             for (int z = -this.levelHeight; z < this.levelHeight; z++)
             {
 
-                float cubeDistFromOrigo = MathF.Sqrt(x * x + z * z) / 150; // the farther away the cube is the less likely for it to be walkable
-                bool isWall = GetPerlinDepth(x, z, this.seed) > (.68f - cubeDistFromOrigo);
+                float cubeDistFromOrigo = MathF.Sqrt(x * x + z * z) / 150; // the farther away the cube is the less likely for it to be walkable, should be dynamic ie dependant on this.levelHeight and this.roomsdidelength
+                bool isWall = GetPerlinDepth(x, z, this.seed) > (.68f - cubeDistFromOrigo); // these numbers are not dynamic and will work properly with map size 40,40 and room size 9
                 Vector3 tilePostition = new Vector3(x, isWall ? 1 :0, z); //raise up the ones having isWall flag
                 mapTile = new MapTile(tilePostition);
 
@@ -143,7 +143,7 @@ public class MapTile
         this.tilePosition = tilePosition;
     }
 
-}
+}*/
 
 
 

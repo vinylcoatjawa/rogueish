@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class MapGenerator : MonoBehaviour
+/*public class MapGenerator : MonoBehaviour
 {
     public int mapWidth;
     public int mapHeight;
@@ -17,4 +17,4 @@ public class MapGenerator : MonoBehaviour
         display.DrawNoiseMap(noiseMap);
 
     }
-}
+}*/
