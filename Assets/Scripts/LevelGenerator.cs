@@ -4,106 +4,142 @@ using UnityEngine;
 
 public class LevelGenerator : MonoBehaviour
 {
-    // 1. generate a grid of size X, Z
+    // 1. generate a walk
 
-    // 2. select two far away points and connect them with a "random walk"
-
-    // 3. create of branches from this walk
+    // 3. create of branches from this walk NO NEED 
 
     // 4. place rectangles so that the path winds through them
 
     // 5. spice up room geometri with noise, probably Perlin noise
 
 
-    int maxStepsize = 10;
-    
-    private void PathGenerator(int forward, int right)
-    {
-        List<int> forwardList = StepLister(forward);
-        List<int> rightList = StepLister(right);
-        GameObject theMap = new GameObject("The Map");
 
-
-        Vector3 startPos = Vector3.zero;
-        int totalListCount = forwardList.Count + rightList.Count;
-
-        while(totalListCount != 0)
-        {
-            int choice = Random.Range(0, 2);
-            if (choice == 1)
-            {
-                int stepsToTake = ListPop(forwardList);
-                Vector3 stepsTaken = Vector3.forward * stepsToTake * 10;
-                Tiler(startPos, Vector3.forward, stepsToTake, theMap);
-                startPos += stepsTaken;
-                totalListCount = forwardList.Count + rightList.Count;
-            }
-            else if (choice == 0)
-            {
-                int stepsToTake = ListPop(rightList);
-                Vector3 stepsTaken = Vector3.right * stepsToTake * 10;
-                Tiler(startPos, Vector3.right, stepsToTake, theMap);
-                startPos += stepsTaken;
-                totalListCount = forwardList.Count + rightList.Count;
-            }
-            Debug.Log("Left are: " + totalListCount + " steps and the current choice was " + choice);
-        }
-    }
-    
-    private void Tiler(Vector3 startPos, Vector3 direction, int steps, GameObject map)
-    {
-        
-        for (int i = 0; i < steps; i++)
-        {
-            GameObject tile = GameObject.CreatePrimitive(PrimitiveType.Plane);
-            tile.transform.position = startPos + direction * i * 10;
-            tile.GetComponent<Renderer>().material.color = Random.ColorHSV(0f, 1f, 1f, 1f, 0.5f, 1f);
-            tile.transform.SetParent(map.transform);
-        }
-    }
-
-    private List<int> StepLister(int steps)
+    /* returns a list of integers(x) to be used as x length straight corridor segments of a path */
+    private List<int> CorridorLister(int numberOfCorridors, int maxCorridorLength)
     {
         List<int> stepList = new List<int>();
-        for (int i = 0; i < steps; i++)
+        for (int i = 0; i < numberOfCorridors; i++)
         {
-            int curr = Random.Range(1, maxStepsize);
+            int curr = Random.Range(2, maxCorridorLength);
             stepList.Add(curr);
         }
-
         return stepList;
     }
-
-    private int ListPop(List<int> stepList)
+    /* standard list popper, takes list pops last element */
+    private int ListPop(List<int> list)
     {
         int popped;
-        int listLength = stepList.Count;
+        int listLength = list.Count;
         if (listLength != 0)
         {
-            popped = stepList[listLength - 1];
-            stepList.RemoveAt(listLength - 1);
+            popped = list[listLength - 1];
+            list.RemoveAt(listLength - 1);
             return popped;
         }
         else return 0;
     }
+    /* returns a unit vector pointing north or west*/
+    private Vector3 RandomCardinalDirection()
+    {
+        while (true)
+        {
+            float yRot = Random.rotationUniform.eulerAngles.y;
+            int x = Mathf.RoundToInt(Mathf.Cos(yRot));
+            int z = Mathf.RoundToInt(Mathf.Sin(yRot));
+
+            int x_abs = x;// Mathf.Abs(x);
+            int z_abs = z;// Mathf.Abs(z);
+
+            if (Mathf.Abs(x + z) == 1)
+            {
+                return new Vector3(x_abs, 0, z_abs);
+            }
+        }
+    }
+    /* returns a unit vector pointing south or east MAY NOT BE NEEDED*/
+    /*private Vector3 SouthOrEast()
+    {
+        while (true)
+        {
+            float yRot = Random.rotationUniform.eulerAngles.y;
+            int x = Mathf.RoundToInt(Mathf.Cos(yRot));
+            int z = Mathf.RoundToInt(Mathf.Sin(yRot));
+
+            int x_abs = -Mathf.Abs(x);
+            int z_abs = -Mathf.Abs(z);
+
+            if (Mathf.Abs(x + z) == 1)
+            {
+                return new Vector3(x_abs, 0, z_abs);
+            }
+        }
+    }*/
+    /* lays floor tiles for a straight corridor section */
+    private void LayCorridorTiles(Vector3 startPos, Vector3 direction, int steps, GameObject map, Color tileColor)
+    {
+        for (int i = 0; i < steps; i++)
+        {
+            Vector3 tilePosition = startPos + direction * i * 10;
+            GameObject tile = GameObject.CreatePrimitive(PrimitiveType.Plane);
+            tile.transform.position = tilePosition;
+            tile.name = "Floor tile at " + tilePosition.ToString();
+            tile.GetComponent<Renderer>().material.color = tileColor;
+            tile.transform.SetParent(map.transform);
+            tile.tag = "Floor tile";
+        }
+    }
+
+    private void PathGenerator(int mainPathCorridorCount, int maxMainPathCorridorLength, int numberOfOffshootBranches, int branchCorridorCount)
+    {
+        List<int> mainPathCorridors = CorridorLister(mainPathCorridorCount, maxMainPathCorridorLength);
+        GameObject theMap = new GameObject("The Map");
+        Vector3 absoluteStartPos = Vector3.zero;
+
+        /* CREATE PATH */
+
+        while (mainPathCorridors.Count != 0)
+        {
+            Vector3 startPos = absoluteStartPos;
+            int corridorLength = ListPop(mainPathCorridors);
+            Vector3 corridorDirection = RandomCardinalDirection();
+            LayCorridorTiles(startPos, corridorDirection, corridorLength, theMap, Color.gray);
+            startPos += corridorDirection * corridorLength * 10;
+        }
+
+        /* creating doors */
+
+        for (int doors = 0; doors < 10; doors++)
+        {
+            int index = Random.Range(0, GameObject.FindGameObjectsWithTag("Floor tile").Length - 1);
+            GameObject door = theMap.transform.GetChild(index).gameObject;
+            door.GetComponent<Renderer>().material.color = Color.red;
+            door.gameObject.name = "door";
+            door.transform.position += new Vector3(0, .5f, 0);
+        }
+        
+    }
+
     
-    
-    
-   
+  
+
+
+
+
+
+
 
 
     private void Start()
     {
-        //IntegerPrtition(80, 4);
 
-        PathGenerator(5,5);
+        PathGenerator(20,12, 0, 0);
 
-   
+        //for (int i = 0; i < 15; i++)
+        //{
+        //    Debug.Log(i + ". step is: " + NorthOrWest());
+        //}
 
-        //Tiler(Vector3.zero, Vector3.right, 10);
 
-        //Debug.Log(Vector3.forward);
-        //Debug.Log(Vector3.right);
     }
 
 }
