@@ -93,13 +93,15 @@ public class LevelGenerator : MonoBehaviour
     {
         List<int> mainPathCorridors = CorridorLister(mainPathCorridorCount, maxMainPathCorridorLength);
         GameObject theMap = new GameObject("The Map");
-        Vector3 absoluteStartPos = Vector3.zero;
+        Vector3 startPos = Vector3.zero;
+        Vector3 absoluteStartPos = startPos;
 
         /* CREATE PATH */
 
         while (mainPathCorridors.Count != 0)
         {
-            Vector3 startPos = absoluteStartPos;
+
+            Debug.Log(startPos + "  " +absoluteStartPos);
             int corridorLength = ListPop(mainPathCorridors);
             Vector3 corridorDirection = RandomCardinalDirection();
             LayCorridorTiles(startPos, corridorDirection, corridorLength, theMap, Color.gray);
@@ -108,14 +110,14 @@ public class LevelGenerator : MonoBehaviour
 
         /* creating doors */
 
-        for (int doors = 0; doors < 10; doors++)
-        {
-            int index = Random.Range(0, GameObject.FindGameObjectsWithTag("Floor tile").Length - 1);
-            GameObject door = theMap.transform.GetChild(index).gameObject;
-            door.GetComponent<Renderer>().material.color = Color.red;
-            door.gameObject.name = "door";
-            door.transform.position += new Vector3(0, .5f, 0);
-        }
+        //for (int doors = 0; doors < 10; doors++)
+        //{
+        //    int index = Random.Range(0, GameObject.FindGameObjectsWithTag("Floor tile").Length - 1);
+        //    GameObject door = theMap.transform.GetChild(index).gameObject;
+        //    door.GetComponent<Renderer>().material.color = Color.red;
+        //    door.gameObject.name = "door";
+        //    door.transform.position += new Vector3(0, .5f, 0);
+        //}
         
     }
 
