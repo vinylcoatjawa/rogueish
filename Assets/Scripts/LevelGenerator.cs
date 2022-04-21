@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using NoiseUtils;
 
 public class LevelGenerator : MonoBehaviour
 {
@@ -47,7 +48,7 @@ public class LevelGenerator : MonoBehaviour
             int x = Mathf.RoundToInt(Mathf.Cos(yRot));
             int z = Mathf.RoundToInt(Mathf.Sin(yRot));
 
-            int x_abs = x;// Mathf.Abs(x);
+            int x_abs = x;// Mathf.Abs(x); uncomment for movement only in north-east direction
             int z_abs = z;// Mathf.Abs(z);
 
             if (Mathf.Abs(x + z) == 1)
@@ -79,54 +80,123 @@ public class LevelGenerator : MonoBehaviour
     {
         for (int i = 0; i < steps; i++)
         {
-            Vector3 tilePosition = startPos + direction * i * 10;
+            Vector3 tilePosition = startPos + direction * i;
             GameObject tile = GameObject.CreatePrimitive(PrimitiveType.Plane);
             tile.transform.position = tilePosition;
             tile.name = "Floor tile at " + tilePosition.ToString();
             tile.GetComponent<Renderer>().material.color = tileColor;
+            tile.transform.localScale = new Vector3(0.1f, 0, 0.1f);
             tile.transform.SetParent(map.transform);
             tile.tag = "Floor tile";
+            // maybe destroy the ones existing the position where we wann insert before inserting
         }
+    }
+    /* find the lower-left- and the upper-right-most tile  */
+    private void GetMaxCorner(out Vector3 minCorner, out Vector3 maxCorner)
+    {
+        GameObject[] tiles = GameObject.FindGameObjectsWithTag("Floor tile");
+        Vector3 max = Vector3.zero;
+        Vector3 min = Vector3.zero;
+        foreach (var tile in tiles)
+        {
+            if (tile.transform.position.x >= max.x) { max.x = tile.transform.position.x; }
+            if (tile.transform.position.z >= max.z) { max.z = tile.transform.position.z; }
+            if (tile.transform.position.x <= min.x) { min.x = tile.transform.position.x; }
+            if (tile.transform.position.z <= min.z) { min.z = tile.transform.position.z; }
+        }
+        maxCorner = max;
+        minCorner = min;
+
     }
 
     private void PathGenerator(int mainPathCorridorCount, int maxMainPathCorridorLength, int numberOfOffshootBranches, int branchCorridorCount)
     {
         List<int> mainPathCorridors = CorridorLister(mainPathCorridorCount, maxMainPathCorridorLength);
         GameObject theMap = new GameObject("The Map");
+        Vector3 maxCorner = Vector3.zero;
+        Vector3 minCorner = Vector3.zero;
         Vector3 startPos = Vector3.zero;
-        Vector3 absoluteStartPos = startPos;
+        //Vector3 absoluteStartPos = startPos; // may not be needed
 
         /* CREATE PATH */
 
         while (mainPathCorridors.Count != 0)
         {
 
-            Debug.Log(startPos + "  " +absoluteStartPos);
             int corridorLength = ListPop(mainPathCorridors);
             Vector3 corridorDirection = RandomCardinalDirection();
-            LayCorridorTiles(startPos, corridorDirection, corridorLength, theMap, Color.gray);
-            startPos += corridorDirection * corridorLength * 10;
+            LayCorridorTiles(startPos, corridorDirection, corridorLength, theMap, Color.red);
+            startPos += corridorDirection * corridorLength;
         }
 
-        /* creating doors */
+        GetMaxCorner(out minCorner, out maxCorner);
+        LayOuterWall(minCorner, maxCorner);
 
-        //for (int doors = 0; doors < 10; doors++)
-        //{
-        //    int index = Random.Range(0, GameObject.FindGameObjectsWithTag("Floor tile").Length - 1);
-        //    GameObject door = theMap.transform.GetChild(index).gameObject;
-        //    door.GetComponent<Renderer>().material.color = Color.red;
-        //    door.gameObject.name = "door";
-        //    door.transform.position += new Vector3(0, .5f, 0);
-        //}
-        
+        //GameObject rand = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        //rand.transform.position = GetRandomRoomCorner(minCorner, maxCorner);
+
+
+
     }
 
-    
-  
+
+
+    private void LayOuterWall(Vector3 minCorner, Vector3 maxCorner)
+    {
+        int offset = 5;
+        int verticalLength = (int)Mathf.Abs(minCorner.z - maxCorner.z);
+        int horizontalLength = (int)Mathf.Abs(minCorner.x - maxCorner.x);
+        GameObject walls = new GameObject("Walls");
+
+        Vector3 wallMinCorner = minCorner - new Vector3(offset, 0, offset);
+        Vector3 wallMaxCorner = maxCorner + new Vector3(offset, 0, offset);
+
+        for (int i = 0; i < (verticalLength + 2 * offset) + 1; i++)
+        {
+            GameObject wallSegment_1 = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            GameObject wallSegment_2 = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            wallSegment_1.GetComponent<Renderer>().material.color = Color.red;
+            wallSegment_2.GetComponent<Renderer>().material.color = Color.red;
+            wallSegment_1.transform.position = new Vector3(wallMinCorner.x, 0, wallMinCorner.z) + i * (Vector3.forward);
+            wallSegment_2.transform.position = new Vector3(wallMaxCorner.x, 0, wallMinCorner.z) + i * (Vector3.forward);
+            wallSegment_1.transform.SetParent(walls.transform);
+            wallSegment_2.transform.SetParent(walls.transform);
+        }
+
+        for (int i = 1; i < (horizontalLength + 2 * offset); i++)
+        {
+            GameObject wallSegment_1 = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            GameObject wallSegment_2 = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            wallSegment_1.GetComponent<Renderer>().material.color = Color.red;
+            wallSegment_2.GetComponent<Renderer>().material.color = Color.red;
+            wallSegment_1.transform.position = new Vector3(wallMinCorner.x, 0, wallMinCorner.z) + i * (Vector3.right);
+            wallSegment_2.transform.position = new Vector3(wallMinCorner.x, 0, wallMaxCorner.z) + i * (Vector3.right);
+            wallSegment_1.transform.SetParent(walls.transform);
+            wallSegment_2.transform.SetParent(walls.transform);
+        }
+    }
+
+    private Vector3 GetRandomRoomCorner(Vector3 minCorner, Vector3 maxCorner)
+    {
+        int randX = Random.Range((int)minCorner.x, (int)maxCorner.x);
+        int randZ = Random.Range((int)minCorner.z, (int)maxCorner.z);
+
+        return new Vector3(randX, 0, randZ);
+    }
+
+    private void RayCastInCardinalDirection(Vector3 objectPosition, Vector3 cardinalDirection)
+    {
+
+    }
 
 
 
 
+    /* MAY BE NEEDED */
+    //private Vector3 GetWorldPosition(int x, int z, float cellSize)
+    //{
+    //    return new Vector3(x, 0, z) * cellSize;
+    //}
 
 
 
@@ -134,7 +204,30 @@ public class LevelGenerator : MonoBehaviour
     private void Start()
     {
 
-        PathGenerator(20,12, 0, 0);
+        Noise noise = new Noise();
+
+        //Debug.Log((uint)Mathf.RoundToInt((float)2 / 3));
+
+        Debug.Log(uint.MaxValue);
+
+        for (int i = 0; i < 10000; i++)
+        {
+
+            Debug.Log(noise.ZeroOrOne((uint)i, 36));
+
+            //if(noise.Get1DNoiseZeroToOne((uint)i, 256) >= .5f)
+            //{
+            //Debug.Log(true);
+            //}
+            //else
+            //{
+            // Debug.Log(false);
+            //}
+        }
+
+        
+        PathGenerator(25,10, 0, 0);
+        //GetMaxCorner();
 
         //for (int i = 0; i < 15; i++)
         //{
