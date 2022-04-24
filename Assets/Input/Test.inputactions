@@ -1,0 +1,34 @@
+{
+    "name": "Test",
+    "maps": [
+        {
+            "name": "Testing",
+            "id": "91948cb9-64de-4485-9464-f31816981f7c",
+            "actions": [
+                {
+                    "name": "New",
+                    "type": "Button",
+                    "id": "b0981878-0e95-4dc6-8ffa-f3b53929ffb7",
+                    "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                }
+            ],
+            "bindings": [
+                {
+                    "name": "",
+                    "id": "38849d28-cb00-4065-8703-ea9dca7829c1",
+                    "path": "<Mouse>/leftButton",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "New",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                }
+            ]
+        }
+    ],
+    "controlSchemes": []
+}
