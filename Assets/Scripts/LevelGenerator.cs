@@ -6,58 +6,50 @@ using NoiseUtils;
 
 public class LevelGenerator : MonoBehaviour
 {
-    // 1. generate a walk
 
-    // 3. create of branches from this walk NO NEED 
-
-    // 4. place rectangles so that the path winds through them
-
-    // 5. spice up room geometri with noise, probably Perlin noise
-
-    /* TERMINOLOGY:
+    /* 
+    TERMINOLOGY:
             - Corridor: straight bit of path
     */
-    //public uint seed = 12890;
+
+
     Noise noise = new Noise();
     GameObject map;
+    GameObject path;
     int[,] mapGrid;
     int gridMinX, gridMinZ, gridMaxX, gridMaxZ;
 
     private void Awake()
     {
         map = new GameObject("The Map");
-        mapGrid = new int[100, 100];
+        path = new GameObject("The Path");
+        path.transform.SetParent(map.transform);
+        mapGrid = new int[100, 100]; // may not be needed
 
     }
 
     private void LayPathBranch(Vector3 pathStartPos, uint minCorridorCount, uint maxCorridorCountDeviation, uint seed)  // parameters may be superflous but this function may be used for sidebranches as well
     {
-        uint startX = (uint)pathStartPos.x;
-        uint startZ = (uint)pathStartPos.z;
+        uint startX = (uint)pathStartPos.x; // these will be used in the noise map
+        uint startZ = (uint)pathStartPos.z; // these will be used in the noise map
         Vector3 corridorStartPos = pathStartPos;
         uint numberOfCorridors = minCorridorCount + (noise.Get2DNoiseUint(startX, startZ, seed) % maxCorridorCountDeviation); // calculate number of straight corridors to include in the path
         for (int corridor = 0; corridor < numberOfCorridors; corridor++) // looping through the number of corridors to create them
         {
-            Vector3 direction = ChooseDirection(corridorStartPos, corridor, seed);
-            //Debug.Log("Number of corridors: " + numberOfCorridors + " we are currently on corridor nr: " + (corridor + 1) + " and the chose direstion is: " + direction);
-            //Debug.Log(direction);
-            //Vector3 direction = new Vector3(1, 0, 0);
-            LayCorridor(corridorStartPos, direction, corridor, seed);
-            
+            Vector3 direction = ChooseDirection(corridorStartPos, corridor, seed); // getting random direction for next corridor bit
+            corridorStartPos = LayCorridor(corridorStartPos, direction, corridor, seed); // LayCorridor takes in the postition of the start tile and returns the position of the end tile         
         }
         
     }
 
     private Vector3 ChooseDirection(Vector3 corridorStartPos, int corridor, uint seed)
     {
-        uint startX = (uint)corridorStartPos.x; 
-        uint startZ = (uint)corridorStartPos.z;
-        //Vector3 nextTile = corridorStartPos;
+        uint startX = (uint)corridorStartPos.x; // these will be used in the noise map
+        uint startZ = (uint)corridorStartPos.z; // these will be used in the noise map
 
-        
         uint probe = noise.Get1DNoiseUint((uint)corridor, seed); // we need to adjust the direction calculation in each while loop try
         int directionX = 0; // setting initial direction
-        int directionZ = 0;
+        int directionZ = 0; // setting initial direction this will satisfy the while loop so it iterates through once at least
 
         while (directionX == directionZ)
         {
@@ -67,34 +59,43 @@ public class LevelGenerator : MonoBehaviour
             directionX = (int)noise.ZeroOrOne(xComponent, seed);
             directionZ = (int)noise.ZeroOrOne(zComponent, seed);
 
-            probe += probe;
+            probe += probe; // probing value is shifted so next iteration of while will have different values
         }
         return new Vector3(directionX, 0, directionZ);
 
     }
 
-    private void LayCorridor(Vector3 corridorStartPos, Vector3 corridorDirection, int corridor, uint seed)
+    private Vector3 LayCorridor(Vector3 corridorStartPos, Vector3 corridorDirection, int corridor, uint seed)
     {
         Vector3 nextTile = corridorStartPos;
-        int startX = (int)nextTile.x;
-        int startZ = (int)nextTile.z;
+        uint startX = (uint)nextTile.x;
+        uint startZ = (uint)nextTile.z;
         int directionX = (int)corridorDirection.x;
         int directionZ = (int)corridorDirection.z;
-        uint numberOfCorridorTiles = 2 + (noise.Get2DNoiseUint((uint)startX + (uint)corridor * (uint)corridor, (uint)startZ + (uint)corridor * (uint)corridor, seed) % 8); // minsteps is 2 so we at least make 2 steps and 8 + 2 at most
-        Debug.Log("Handling corridr: " + corridor + " which will have " + numberOfCorridorTiles + " floor tiles");
+        uint numberOfCorridorTiles = 2 + (noise.Get2DNoiseUint(startX + 1 +(uint)corridor * (uint)corridor, startZ + 1 + (uint)corridor * (uint)corridor, seed) % 8); // minsteps is 2 so we at least make 2 steps and 8 + 2 at most
+        //Debug.Log("Handling corridr: " + corridor + " which will have " + numberOfCorridorTiles + " floor tiles");
         for (int step = 0; step < numberOfCorridorTiles; step++)
         {
-            int gridX = startX + step * directionX;
-            int gridZ = startZ + step * directionZ;
-            mapGrid[gridX, gridZ] = 0;
-            if (gridX > gridMaxX) { gridMaxX = gridX; }
-            if (gridX < gridMinX) { gridMinX = gridX; }
-            if (gridZ > gridMaxZ) { gridMaxZ = gridZ; }
-            if (gridZ < gridMinZ) { gridMinZ = gridZ; }
-            Debug.Log(gridMaxX + " " + gridMinX + " " + gridMaxZ + " " + gridMinZ + " value " + mapGrid[gridX, gridZ]);
-        }
-        //corridorStartPos = nextTile + numberOfCorridorTiles * new Vector3(directionX, 0, directionZ); 
+            int gridX = (int)startX + step * directionX;
+            int gridZ = (int)startZ + step * directionZ;
 
+            //Debug.Log("Putting tile on (" + gridX + ", " + gridZ + " )");
+
+            Vector3 tilePos = new Vector3(gridX, 0, gridZ);
+
+            SpawnObjectAt(tilePos, Color.red, path.transform);
+
+            //mapGrid[gridX, gridZ] = 1; // updating gridvalue to be the "floor value" which is 1
+
+            /* saving the grids lover left and upper right corner */
+            //if (gridX > gridMaxX) { gridMaxX = gridX; }
+            //if (gridX < gridMinX) { gridMinX = gridX; }
+            //if (gridZ > gridMaxZ) { gridMaxZ = gridZ; }
+            //if (gridZ < gridMinZ) { gridMinZ = gridZ; } 
+
+        }
+        corridorStartPos = nextTile + numberOfCorridorTiles * new Vector3(directionX, 0, directionZ);
+        return corridorStartPos;
     }
 
 
@@ -107,32 +108,105 @@ public class LevelGenerator : MonoBehaviour
     }
 
 
-    void OnDrawGizmos()
+    private Vector3 SelectRandomPathTile(uint seed)
     {
-        if (mapGrid != null)
+        GameObject[] pathTiles = GameObject.FindGameObjectsWithTag("Path tile");
+        int numberOfPathTiles = pathTiles.Length;
+        uint noiseBasedIndex = noise.Get1DNoiseUint((uint)numberOfPathTiles, seed) % (uint)numberOfPathTiles;
+        pathTiles[noiseBasedIndex].GetComponent<Renderer>().material.color = Color.black;
+        return pathTiles[noiseBasedIndex].transform.position;
+    }
+
+    private void SelectViableOffshootDirection(Vector3 tilePosition)
+    {
+        Dictionary <string , Vector3> directions = new Dictionary<string, Vector3>();
+        directions.Add("Forward", Vector3.forward);
+        directions.Add("Back", Vector3.back);
+        directions.Add("Left", Vector3.left);
+        directions.Add("Right", Vector3.right);
+
+        foreach (var direction in directions)
         {
-            for (int x = gridMinX; x < gridMaxX; x++)
+            if(Physics.Raycast(tilePosition, direction.Value))
             {
-                for (int y = gridMinZ; y < gridMaxZ; y++)
-                {
-                    Gizmos.color = (mapGrid[x, y] == 1) ? Color.black : Color.blue;
-                    Vector3 pos = new Vector3(x, 0, y);
-                    Gizmos.DrawCube(pos, Vector3.one);
-                }
+                Debug.Log("hit");
             }
         }
 
+        //for (int x = - 1; x < 2; x++)
+        //{
+        //    for (int z = - 1; z < 2; z++)
+        //    {
+        //        Vector3 direction = new Vector3(x, 0, z);
+        //        //Debug.Log("Casting in the direction: " + direction + " from " + tilePosition);
+        //        Ray ray = new Ray(tilePosition, direction);
+        //        //Debug.DrawRay(tilePosition, direction, Color.blue, 10);
+        //        //Debug.Log(Physics.Raycast(tilePosition, direction, out RaycastHit hitinfo));
 
+        //        if (Physics.Raycast(ray, out RaycastHit hit))
+        //        {
+        //            Debug.Log("hit");
+        //            Debug.Log(hit.transform.gameObject.name + " was hit in direction: " + direction);
+        //            Debug.DrawLine(ray.origin, hit.point, Color.blue, 10f);
+        //        }
+        //        else
+        //        {
+        //            Debug.DrawLine(ray.origin, ray.origin + ray.direction * 100, Color.green);
+        //        }
+        //    }  
+        //}
+        
+        
+    }
+    Vector3 test;
+    private void Start()
+    {
+        Debug.Log("Forward: " + Vector3.forward);
+        Debug.Log("Back: " + Vector3.back);
+        Debug.Log("Left: " + Vector3.left);
+        Debug.Log("Right: " + Vector3.right);
 
+        uint seed = (uint)Random.Range(1, uint.MaxValue);
+        
+        Debug.Log(seed);
 
+        LayPathBranch(Vector3.zero, 10, 10, seed);
+        test = SelectRandomPathTile(seed);
+        SelectViableOffshootDirection(test);
+
+        //CreatePathOnLevel(seed);
+
+    }
+
+    private void Update()
+    {
+        //SelectViableOffshootDirection(test);
+    }
+
+    private void CreatePathOnLevel(uint seed)
+    {
+        /* generate main path */
+        LayPathBranch(Vector3.zero, 10, 10, seed);
+        // get offshoot branch number using noise and the seed
+        int numberOfOffshootBranches = 1;
+        for (int branch = 0; branch < numberOfOffshootBranches; branch++)
+        {
+            //SelectRandomPathTile();
+            //SelectViableOffshootDirection();
+            //LayPathBranch();
+        }
 
 
     }
 
-    private void Start()
+    private void SpawnObjectAt(Vector3 objectPosition, Color objectColor, Transform parent)
     {
-        LayPathBranch(Vector3.zero, 5, 5, (uint)Random.Range(1, uint.MaxValue));
-        //ChooseDirection(Vector3.zero, 6);
+        GameObject tile = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        tile.name = "Path tile at " + objectPosition.ToString();
+        tile.tag = "Path tile";
+        tile.transform.position = objectPosition;
+        tile.GetComponent<Renderer>().material.color = objectColor;
+        tile.transform.SetParent(parent);
     }
 
 
