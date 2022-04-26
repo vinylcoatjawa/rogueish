@@ -1,14 +1,14 @@
 {
-    "name": "Test",
+    "name": "PlayerInputActions",
     "maps": [
         {
-            "name": "Testing",
-            "id": "91948cb9-64de-4485-9464-f31816981f7c",
+            "name": "Mouse",
+            "id": "0b2881da-18d0-430e-afdf-153aa72b5de9",
             "actions": [
                 {
-                    "name": "New",
+                    "name": "LeftClick",
                     "type": "Button",
-                    "id": "b0981878-0e95-4dc6-8ffa-f3b53929ffb7",
+                    "id": "84e79a5b-3163-44f8-96b3-60eb75c7c76e",
                     "expectedControlType": "Button",
                     "processors": "",
                     "interactions": "",
@@ -18,12 +18,12 @@
             "bindings": [
                 {
                     "name": "",
-                    "id": "38849d28-cb00-4065-8703-ea9dca7829c1",
+                    "id": "7647cedd-7290-48b2-b66c-e4a95a45ebb1",
                     "path": "<Mouse>/leftButton",
                     "interactions": "",
                     "processors": "",
                     "groups": "",
-                    "action": "New",
+                    "action": "LeftClick",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }

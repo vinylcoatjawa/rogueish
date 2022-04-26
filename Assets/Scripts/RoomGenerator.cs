@@ -20,9 +20,6 @@ public class RoomGenerator : MonoBehaviour
 
     private void Awake()
     {
-		Test testinput = new Test();
-		testinput.Enable();
-		testinput.Testing.New.started += onMouseClickDo;
 
     }
 
