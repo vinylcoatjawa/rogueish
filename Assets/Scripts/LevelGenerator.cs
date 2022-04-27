@@ -5,60 +5,78 @@ using NoiseUtils;
 using UnityEngine.InputSystem;
 //using System;
 
-public class LevelGenerator : MonoBehaviour
+public class LevelGenerator
 {
 
     /* 
     TERMINOLOGY:
             - Corridor: straight bit of path
     */
-
-    
-
-    private uint GetRandomSeed()
-    {
-        return (uint)Random.Range(1, uint.MaxValue); // 3363111936; 3687977984;//
-    }
-
-    public uint seed;
+    uint levelSeed;
     Noise noise = new Noise();
     GameObject map;
     GameObject path;
-
-    //List<Vector3> branchStartPositionBlacklist = new List<Vector3>();
     HashSet<Vector3> branchStartPositionBlacklist = new HashSet<Vector3>(); // hashset to hold path position to avoid when selection new random path tile
 
-
-    private void Awake()
+    public static Dictionary<string, Vector3> directions = new Dictionary<string, Vector3>() // static dict to hold cardinal direction
     {
+        { "Forward", Vector3.forward },
+        { "Back", Vector3.back },
+        { "Left", Vector3.left },
+        { "Right", Vector3.right }
+    };
 
-        PlayerInputActions playerInputAction = new PlayerInputActions();
-        playerInputAction.Mouse.Enable();
-        playerInputAction.Mouse.LeftClick.started += Leftclicked;
+    float tileSize = 1f; 
+
+    
+
+    public LevelGenerator(uint levelSeed)
+    {
+        this.levelSeed = levelSeed;
 
         map = new GameObject("The Map");
         path = new GameObject("The Path");
         path.transform.SetParent(map.transform);
-    }
 
-    private void Leftclicked(InputAction.CallbackContext obj)
+        GenerateLevel();
+    }
+    public void GenerateLevel()
     {
-        Debug.Log("leftclicked");
-        //SelectViableOffshootDirection(test);
+        Debug.Log(levelSeed);
+        Physics.autoSimulation = false;
+        CreatePathOnLevel(levelSeed);
+        //LayMainPathBranch(Vector3.zero, 10, 10);
+        Physics.autoSimulation = true;
     }
 
-    private void LayPathBranch(Vector3 pathStartPos, uint minCorridorCount, uint maxCorridorCountDeviation/*, uint seed*/)  // parameters may be superflous but this function may be used for sidebranches as well
+    private void CreatePathOnLevel(uint seed)
+    {
+        LayMainPathBranch(Vector3.zero, 10, 10);
+
+        int numberOfOffshootBranches = 10;
+        for (int branch = 0; branch < numberOfOffshootBranches; branch++)
+        {
+            LayOffshootBranch(branch);
+        }
+        foreach (var item in branchStartPositionBlacklist)
+        {
+            Debug.Log(item); // somehow need to be uset to not let t choose tiles from here to start offshoot branches
+        }
+    }
+
+    
+
+    private void LayMainPathBranch(Vector3 pathStartPos, uint minCorridorCount, uint maxCorridorCountDeviation)  // parameters may be superflous but this function may be used for sidebranches as well
     {
         uint startX = (uint)pathStartPos.x; // these will be used in the noise map
         uint startZ = (uint)pathStartPos.z; // these will be used in the noise map
         Vector3 corridorStartPos = pathStartPos;
-        uint numberOfCorridors = minCorridorCount + (noise.Get2DNoiseUint(startX, startZ, seed) % maxCorridorCountDeviation); // calculate number of straight corridors to include in the path
+        uint numberOfCorridors = minCorridorCount + (noise.Get2DNoiseUint(startX, startZ, levelSeed) % maxCorridorCountDeviation); // calculate number of straight corridors to include in the path
         for (int corridor = 0; corridor < numberOfCorridors; corridor++) // looping through the number of corridors to create them
         {
             Vector3 direction = ChooseDirection(corridorStartPos, corridor); // getting random direction for next corridor bit
             corridorStartPos = LayCorridor(corridorStartPos, direction, corridor, 2); // LayCorridor takes in the postition of the start tile and returns the position of the end tile         
         }
-        
     }
 
     private Vector3 ChooseDirection(Vector3 corridorStartPos, int corridor)
@@ -66,7 +84,8 @@ public class LevelGenerator : MonoBehaviour
         uint startX = (uint)corridorStartPos.x; // these will be used in the noise map
         uint startZ = (uint)corridorStartPos.z; // these will be used in the noise map
 
-        uint probe = noise.Get1DNoiseUint((uint)corridor, seed); // we need to adjust the direction calculation in each while loop try
+        uint probe = noise.Get1DNoiseUint((uint)corridor, levelSeed); // we need to adjust the direction calculation in each while loop try
+
         int directionX = 0; // setting initial direction
         int directionZ = 0; // setting initial direction this will satisfy the while loop so it iterates through once at least
 
@@ -75,13 +94,12 @@ public class LevelGenerator : MonoBehaviour
             uint xComponent = startX + (uint)corridor * (uint)corridor + (uint)probe;
             uint zComponent = startZ + (uint)corridor * (uint)corridor + ((uint)probe * 2);
         
-            directionX = (int)noise.ZeroOrOne(xComponent, seed);
-            directionZ = (int)noise.ZeroOrOne(zComponent, seed);
+            directionX = (int)noise.ZeroOrOne(xComponent, levelSeed);
+            directionZ = (int)noise.ZeroOrOne(zComponent, levelSeed);
 
             probe += probe; // probing value is shifted so next iteration of while will have different values
         }
         return new Vector3(directionX, 0, directionZ);
-
     }
 
     private Vector3 LayCorridor(Vector3 corridorStartPos, Vector3 corridorDirection, int corridor, int minLength) // want to pass in min length so we can use this for main and offbranches with flexibility 
@@ -91,15 +109,15 @@ public class LevelGenerator : MonoBehaviour
         uint startZ = (uint)nextTile.z;
         int directionX = (int)corridorDirection.x;
         int directionZ = (int)corridorDirection.z;
-        uint numberOfCorridorTiles = (uint)minLength + (noise.Get2DNoiseUint(startX + 1 +(uint)corridor * (uint)corridor, startZ + 1 + (uint)corridor * (uint)corridor, seed) % 8); // minsteps is 2 so we at least make 2 steps and 8 + 2 at most
+        uint numberOfCorridorTiles = (uint)minLength + (noise.Get2DNoiseUint(startX + 1 +(uint)corridor * (uint)corridor, startZ + 1 + (uint)corridor * (uint)corridor, levelSeed) % 8); // minsteps is 2 so we at least make 2 steps and 8 + 2 at most
         for (int step = 0; step < numberOfCorridorTiles; step++)
         {
             int gridX = (int)startX + step * directionX;
             int gridZ = (int)startZ + step * directionZ;
 
-            Vector3 tilePos = new Vector3(gridX, 0, gridZ);
+            //Vector3 tilePos = new Vector3(gridX, 0, gridZ);
 
-            SpawnObjectAt(tilePos, Color.red, path.transform);
+            SpawnTileAt(gridX, gridZ, "Path tile", "Path", path.transform, PrimitiveType.Cube, Color.red);
 
         }
         corridorStartPos = nextTile + numberOfCorridorTiles * new Vector3(directionX, 0, directionZ);
@@ -107,20 +125,14 @@ public class LevelGenerator : MonoBehaviour
     }
 
 
-    private int[,] WorldPosToMapgrid(Vector3 worldPosition)
-    {
-        int x = (int)worldPosition.x;
-        int z = (int)worldPosition.z;
-        int[,] res = new int[x, z];
-        return res;
-    }
+ 
 
 
     private GameObject SelectRandomPathTile()
     {
         GameObject[] pathTiles = GameObject.FindGameObjectsWithTag("Path tile");
         int numberOfPathTiles = pathTiles.Length;
-        uint noiseBasedIndex = noise.Get1DNoiseUint((uint)numberOfPathTiles, seed) % (uint)numberOfPathTiles;
+        uint noiseBasedIndex = noise.Get1DNoiseUint((uint)numberOfPathTiles, levelSeed) % (uint)numberOfPathTiles;
         pathTiles[noiseBasedIndex].GetComponent<Renderer>().material.color = Color.black;
         for (int x = -1; x < 2; x++)
         {
@@ -137,15 +149,8 @@ public class LevelGenerator : MonoBehaviour
     private Vector3 SelectViableOffshootDirection(GameObject pathTile)
     {
         Vector3 tilePosition = pathTile.transform.position;
-        Dictionary<string, Vector3> directions = new Dictionary<string, Vector3>(); // this should be made static or something and created globally
-
         List<string> directionWhitelist = new List<string>() { "Forward", "Back", "Left", "Right" };
         uint whiteListCount;
-
-        directions.Add("Forward", Vector3.forward);
-        directions.Add("Back", Vector3.back);
-        directions.Add("Left", Vector3.left);
-        directions.Add("Right", Vector3.right);
 
         foreach (var direction in directions)
         {
@@ -166,48 +171,18 @@ public class LevelGenerator : MonoBehaviour
         }
 
         whiteListCount = (uint)directionWhitelist.Count; // TODO!! handle cross sections, these may show up when a branch crosses back on a previously laid branch
-        //Debug.Log("Whitelistcount is: " + whiteListCount);
+        Debug.Log("Whitelistcount is: " + whiteListCount);
 
-        string chosenDirection = directionWhitelist[(int)(noise.Get1DNoiseUint((uint)tilePosition.x + (uint)tilePosition.z, seed) % whiteListCount)];
+        string chosenDirection = directionWhitelist[(int)(noise.Get1DNoiseUint((uint)tilePosition.x + (uint)tilePosition.z, levelSeed) % whiteListCount)];
         //Debug.Log(pathTile.transform.position + " has to chosen " + chosenDirection);
         return directions[chosenDirection];
         
 
 
     }
-    private void Start()
-    {
-        Physics.autoSimulation = false;
-        seed = GetRandomSeed();
 
 
-        Debug.Log(seed);
-
-        //LayPathBranch(Vector3.zero, 10, 10);
-        //test = SelectRandomPathTile();
-        //Debug.Log(SelectViableOffshootDirection(test));
-
-        CreatePathOnLevel(seed);
-        Physics.autoSimulation = true;
-    }
-
-    private void CreatePathOnLevel(uint seed)
-    {
-        /* generate main path */
-        LayPathBranch(Vector3.zero, 10, 10);
-        // get offshoot branch number using noise and the seed
-        int numberOfOffshootBranches = 8;
-        for (int branch = 0; branch < numberOfOffshootBranches; branch++)
-        {
-            LayOffshootBranch(branch);
-            
-        }
-        foreach (var item in branchStartPositionBlacklist)
-        {
-            Debug.Log(item); // somehow need to be uset to not let t choose tiles from here to start offshoot branches
-        }
-
-    }
+    
 
     private void LayOffshootBranch(int branch)
     {
@@ -217,20 +192,28 @@ public class LevelGenerator : MonoBehaviour
         //LayPathBranch(,);
     }
 
-    private void SpawnObjectAt(Vector3 objectPosition, Color objectColor, Transform parent)
+    
+
+    private void SpawnTileAt(int tilePosX, int tilePosZ, string tag, string name, Transform parent, PrimitiveType type, Color objectColor)
     {
-        GameObject tile = GameObject.CreatePrimitive(PrimitiveType.Cube);
-        tile.name = "Path tile at " + objectPosition.ToString();
-        tile.tag = "Path tile";
-        tile.transform.position = objectPosition;
+        GameObject tile = GameObject.CreatePrimitive(type);
+        tile.name = name +" tile at " + GridToWorld(tilePosX, tilePosZ).ToString();
+        tile.tag = tag;
+        tile.transform.position = GridToWorld(tilePosX, tilePosZ);
         tile.GetComponent<Renderer>().material.color = objectColor;
         tile.transform.SetParent(parent);
+    }
+
+    private Vector3 GridToWorld(int gridX, int gridZ)
+    {
+        return new Vector3(gridX, 0, gridZ) * tileSize;
     }
 
 
     /*  BAD SEEDS
      * 621337600 - has parallel corridors next to eachother
      * 3796206592 - this one too
+     * 2208472320 has cross section
      */
 
     /* returns a list of integers(x) to be used as x length straight corridor segments of a path */
