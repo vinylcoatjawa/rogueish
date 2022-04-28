@@ -12,11 +12,14 @@ public class Test : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        uint randomSeed = 1480729344;// GetRandomSeed();
-        LevelGenerator level = new LevelGenerator(randomSeed);
+        uint randomSeed = 2896306688;// GetRandomSeed();
+        Debug.Log(randomSeed);
+        LevelGenerator level = new LevelGenerator(randomSeed, 10);
 
 
-        
+       
+
+
     }
 
     
