@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using NoiseUtils;
 using UnityEngine.InputSystem;
+using System;
 //using System;
 
 public class LevelGenerator
@@ -17,6 +18,7 @@ public class LevelGenerator
     Noise noise = new Noise();
     GameObject map;
     GameObject path;
+    GameObject walls;
 
     public static Dictionary<string, Vector3> cardinalDirections = new Dictionary<string, Vector3>() // static dict to hold cardinal direction
     {
@@ -45,47 +47,66 @@ public class LevelGenerator
 
         map = new GameObject("The Map");
         path = new GameObject("The Path");
+        walls = new GameObject("The Wall");
         path.transform.SetParent(map.transform);
+        walls.transform.SetParent(map.transform);
 
         GenerateLevel();
-        //GenerateLevel_2();
+        
     }
-    public void GenerateLevel_2()
-    {
-        // put startin tile at 0,0
-        SpawnTileAt(0, 0, "Path tile", "Path", path.transform, PrimitiveType.Cube, Color.red);
-        // noise RNG number of corridors and number of tiles in each create dict maybe
-        uint numberOfCorridors = 10 + (noise.Get2DNoiseUint(0, 0, levelSeed) % complexity);
-        Dictionary<GameObject, Vector3> corridorDict = new Dictionary<GameObject, Vector3>();
-        Debug.Log(numberOfCorridors);
-        Physics.autoSimulation = false;
-        for (int i = 0; i < 12; i++)
-        {
-            
-            GameObject branchStartTile;
-            Vector3 branchDirection;
-            SelectRandomPathTileAndDirection(out branchStartTile, out branchDirection);
-            Debug.Log("Star pos is: " + branchStartTile.transform.position + " and direction is " + branchDirection);
-            LayCorridor(branchStartTile.transform.position, branchDirection, i, 10);
-        }
-        // SelectRandomPathTileAndDirection for these
-        Physics.autoSimulation = true;
-    }
+    
 
     public void GenerateLevel()
     {
-        Debug.Log(levelSeed);
         Physics.autoSimulation = false;
         CreatePathOnLevel(levelSeed);
-        //LayMainPathBranch(Vector3.zero, 10, 10);
+        BuildWalls();
         Physics.autoSimulation = true;
     }
 
+    #region GENERAL UTIL
+
+    private void SpawnTileAt(int tilePosX, int tilePosZ, string tag, string name, Transform parent, PrimitiveType type, Color objectColor)
+    {
+        Physics.Simulate(1f);
+        if (!Physics.CheckSphere(GridToWorld(tilePosX, tilePosZ), 0.1f))
+        {
+            GameObject tile = GameObject.CreatePrimitive(type);
+            tile.name = name + " tile at " + GridToWorld(tilePosX, tilePosZ).ToString();
+            tile.tag = tag;
+            tile.transform.position = GridToWorld(tilePosX, tilePosZ);
+            tile.GetComponent<Renderer>().material.color = objectColor;
+            tile.transform.SetParent(parent);
+        }
+        else { Debug.Log("Object collision at: " + GridToWorld(tilePosX, tilePosZ)); }
+    }
+
+    private Vector3 GridToWorld(int gridX, int gridZ)
+    {
+        return new Vector3(gridX, 0, gridZ) * tileSize;
+    }
+
+    private void ReactivateTiles(List<GameObject> gameObjectsToActivate)
+    {
+        for (int i = 0; i < gameObjectsToActivate.Count; i++)
+        {
+            gameObjectsToActivate[i].SetActive(true);
+        }
+    }
+
+
+
+    #endregion
+
+
+    #region PATH
+
     private void CreatePathOnLevel(uint seed)
     {
-        LayMainPathBranch(Vector3.zero, 10, 10);
+        LayMainPathBranch(Vector3.zero, 10, 10); // currently these are hardcoded, since they seem to work well and give a good main path
 
-        int numberOfOffshootBranches = 5;
+        int numberOfOffshootBranches = 6; // this is also hardcoded for now
+
         for (int branch = 0; branch < numberOfOffshootBranches; branch++)
         {
             LayOffshootBranch(branch);
@@ -149,30 +170,28 @@ public class LevelGenerator
     }
 
 
-
-
-
     private void SelectRandomPathTileAndDirection(out GameObject branchStartTile, out Vector3 branchDirection) // really ugly but works well
     {
         GameObject[] pathTiles = GameObject.FindGameObjectsWithTag("Path tile");
         List<GameObject> toActivateAgain = new List<GameObject>();
         int numberOfPathTiles = pathTiles.Length;
-        uint noiseBasedIndex;
         branchStartTile = pathTiles[0];
         branchDirection = Vector3.zero;
         uint probe = 0;
-        bool goodEnough = true;
+        bool goodEnough = false;
         
-        List<string> cardinalDirectionWhitelist = new List<string>() { "North", "South", "West", "East" };
+        
+        List<string> cardinalDirectionlist = new List<string>() { "North", "South", "West", "East" };
+        List<string> cardinalDirectionWhitelist = new List<string>();
+        List<string> diagonalDirectionBlacklist = new List<string>();
 
-        List<string> diagonalDirectionWhitelist = new List<string>();
-
-        while (goodEnough)
+        while (!goodEnough)
         {
-            noiseBasedIndex = noise.Get1DNoiseUint((uint)numberOfPathTiles, levelSeed) % (uint)numberOfPathTiles;
+            cardinalDirectionWhitelist = new List<string>(cardinalDirectionlist);
+            diagonalDirectionBlacklist.Clear();
+            uint noiseBasedIndex = noise.Get1DNoiseUint((uint)numberOfPathTiles + probe, levelSeed) % (uint)numberOfPathTiles;
             branchStartTile = pathTiles[noiseBasedIndex];
-
-            foreach (var direction in cardinalDirections)
+            foreach (var direction in cardinalDirections) // scanning in the caridnal directions and removing obstructed directions, also turning off hit pathtiles
             {
                 Ray ray = new Ray(branchStartTile.transform.position, direction.Value);
                 Physics.Simulate(1f); // need to simulate physics to be able to raycast
@@ -183,41 +202,49 @@ public class LevelGenerator
                     hitinfo.collider.gameObject.SetActive(false);
                 }
             }
-            foreach (var direction in diagonalDirections)
+            foreach (var direction in diagonalDirections) // scanning in the diagonal directions
             {
                 Ray ray = new Ray(branchStartTile.transform.position, direction.Value);
                 Physics.Simulate(1f); // need to simulate physics to be able to raycast
                 if (Physics.Raycast(branchStartTile.transform.position, direction.Value, out RaycastHit hitinfo, 1f))
                 {
-                    diagonalDirectionWhitelist.Add(direction.Key);
+                    diagonalDirectionBlacklist.Add(direction.Key);
                 }
             }
-            for (int i = 0; i < cardinalDirectionWhitelist.Count; i++)
+            if (diagonalDirectionBlacklist.Count  >= 3) // if we hit more than 2 diagonals then this tile is a bad chioce
+            {  
+                probe++;
+                ReactivateTiles(toActivateAgain);
+                continue;
+            }
+            else
             {
-                for (int j = 0; j < diagonalDirectionWhitelist.Count; j++)
+                for (int i = 0; i < cardinalDirectionWhitelist.Count; i++) // we loop through the
                 {
-                    if (Vector3.Dot(cardinalDirections[cardinalDirectionWhitelist[i]], diagonalDirections[diagonalDirectionWhitelist[j]]) > 0)
+                    for (int j = 0; j < diagonalDirectionBlacklist.Count; j++)
                     {
-                        cardinalDirectionWhitelist.Remove(cardinalDirectionWhitelist[i]);
+                        if (Vector3.Dot(cardinalDirections[cardinalDirectionWhitelist[i]], diagonalDirections[diagonalDirectionBlacklist[j]]) > 0)
+                        {
+                            cardinalDirectionWhitelist.Remove(cardinalDirectionWhitelist[i]);
+                        }
                     }
                 }
             }
             if (cardinalDirectionWhitelist.Count == 0)
-            {
-                probe += probe;
+            {              
+                probe++;          
+                ReactivateTiles(toActivateAgain);
+                continue;
             }
             else
             {
-                goodEnough = false;
+                goodEnough = true;
             }
         }
-        for (int i = 0; i < toActivateAgain.Count; i++)
-        {
-            toActivateAgain[i].SetActive(true);
-        }
+        ReactivateTiles(toActivateAgain);
         Debug.Log(cardinalDirectionWhitelist[0]);
         branchDirection = cardinalDirections[cardinalDirectionWhitelist[0]];
-        branchStartTile.GetComponent<Renderer>().material.color = Color.black;
+        //branchStartTile.GetComponent<Renderer>().material.color = Color.black;
     }
 
 
@@ -232,26 +259,138 @@ public class LevelGenerator
         LayCorridor(branchStartPos, branchStartDirection, branch, 8);
     }
 
+    #endregion
 
 
-    private void SpawnTileAt(int tilePosX, int tilePosZ, string tag, string name, Transform parent, PrimitiveType type, Color objectColor)
+    #region WALLS
+
+    Vector3 minCorner = Vector3.zero;
+    Vector3 maxCorner = Vector3.zero;
+
+
+
+    private void BuildWalls()
     {
-        //if(!Physics.CheckBox(GridToWorld(tilePosX, tilePosZ), Vector3.one * tileSize))
+        Vector3 pathMinCorner;
+        Vector3 pathMaxCorner;
+        GetMinMaxCorners(out pathMinCorner, out pathMaxCorner);
+        LayOuterWall(pathMinCorner, pathMaxCorner);
+        // get corners
+        // build outer walls
+        // pick random point at least 2 away from path
+        // pick 3 or 4 random cardinal directions to eject walls towards nearest wall
+    }
+
+    private void GetMinMaxCorners(out Vector3 pathMinCorner, out Vector3 pathMaxCorner)
+    {
+        pathMinCorner = Vector3.zero;
+        pathMaxCorner = Vector3.zero;
+        GameObject[] pathTiles = GameObject.FindGameObjectsWithTag("Path tile");
+        foreach (var pathTile in pathTiles)
+        {
+            if (pathTile.transform.position.x <= pathMinCorner.x) { pathMinCorner.x = (int)pathTile.transform.position.x; }
+            if (pathTile.transform.position.z <= pathMinCorner.z) { pathMinCorner.z = (int)pathTile.transform.position.z; }
+
+            if (pathTile.transform.position.x > pathMaxCorner.x) { pathMaxCorner.x = (int)pathTile.transform.position.x; }
+            if (pathTile.transform.position.z > pathMaxCorner.z) { pathMaxCorner.z = (int)pathTile.transform.position.z; }
+        }
+        
+        pathMinCorner = new Vector3(pathMinCorner.x, 0, pathMinCorner.z);
+        pathMaxCorner = new Vector3(pathMaxCorner.x, 0, pathMaxCorner.z);
+        Debug.Log("Min is: " + pathMinCorner + " max is: " + pathMaxCorner);
+    }
+
+    private void LayOuterWall(Vector3 minCorner, Vector3 maxCorner)
+    {
+        int offset = 5;
+        int verticalLength = (int)Mathf.Abs(minCorner.z - maxCorner.z);
+        int horizontalLength = (int)Mathf.Abs(minCorner.x - maxCorner.x);
+        //GameObject walls = new GameObject("Walls");
+        Vector3 wallMinCorner = minCorner - new Vector3(offset, 0, offset);
+        Vector3 wallMaxCorner = maxCorner + new Vector3(offset, 0, offset);
+
+        //horisontal
+
+        LayWall(wallMinCorner, wallMinCorner + new Vector3(wallMaxCorner.x, 0, 0));
+        Debug.Log("Start: " + wallMinCorner + " abd end " + (wallMinCorner + new Vector3(wallMaxCorner.x, 0, 0)));
+
+
+        //for (int i = 0; i < (verticalLength + 2 * offset) + 1; i++)
         //{
-        GameObject tile = GameObject.CreatePrimitive(type);
-        tile.name = name + " tile at " + GridToWorld(tilePosX, tilePosZ).ToString();
-        tile.tag = tag;
-        tile.transform.position = GridToWorld(tilePosX, tilePosZ);
-        tile.GetComponent<Renderer>().material.color = objectColor;
-        tile.transform.SetParent(parent);
+        //    GameObject wallSegment_1 = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        //    GameObject wallSegment_2 = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        //    wallSegment_1.GetComponent<Renderer>().material.color = Color.red;
+        //    wallSegment_2.GetComponent<Renderer>().material.color = Color.red;
+        //    wallSegment_1.transform.position = new Vector3(wallMinCorner.x, 0, wallMinCorner.z) + i * (Vector3.forward);
+        //    wallSegment_2.transform.position = new Vector3(wallMaxCorner.x, 0, wallMinCorner.z) + i * (Vector3.forward);
+        //    wallSegment_1.transform.SetParent(walls.transform);
+        //    wallSegment_2.transform.SetParent(walls.transform);
         //}
-        //else { Debug.Log("Object collision at: " + GridToWorld(tilePosX, tilePosZ)); }
+        //for (int i = 1; i < (horizontalLength + 2 * offset); i++)
+        //{
+        //    GameObject wallSegment_1 = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        //    GameObject wallSegment_2 = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        //    wallSegment_1.GetComponent<Renderer>().material.color = Color.red;
+        //    wallSegment_2.GetComponent<Renderer>().material.color = Color.red;
+        //    wallSegment_1.transform.position = new Vector3(wallMinCorner.x, 0, wallMinCorner.z) + i * (Vector3.right);
+        //    wallSegment_2.transform.position = new Vector3(wallMinCorner.x, 0, wallMaxCorner.z) + i * (Vector3.right);
+        //    wallSegment_1.transform.SetParent(walls.transform);
+        //    wallSegment_2.transform.SetParent(walls.transform);
+        //}
+    }
+   
+    private void LayWall(Vector3 startPos, Vector3 endPos)
+    {
+        float wallLength;
+        if (startPos.x != endPos.x && startPos.z != endPos.z) { Debug.Log("Start and end are not in line for wall building"); }
+        else if (startPos.z != endPos.z) { Debug.Log("Only vertical wall is possible"); }
+        else if (startPos.x != endPos.x) { Debug.Log("Only horisontal wall possible"); }
+            
+        if (startPos.x == endPos.x)
+        {
+            wallLength = startPos.z - endPos.z;
+            for (int z = 0; z < wallLength; z++)
+            {
+                SpawnTileAt((int)startPos.x, (int)startPos.z, "Wall tile", "Wall", walls.transform, PrimitiveType.Cube, Color.grey);
+            }
+        }
+        if (startPos.z == endPos.z)
+        {
+            wallLength = startPos.x - endPos.x;
+            for (int x = 0; x < wallLength; x++)
+            {
+                SpawnTileAt((int)startPos.x, (int)startPos.z, "Wall tile", "Wall", walls.transform, PrimitiveType.Cube, Color.grey);
+            }
+        }
     }
 
-    private Vector3 GridToWorld(int gridX, int gridZ)
-    {
-        return new Vector3(gridX, 0, gridZ) * tileSize;
-    }
+
+
+
+
+    #endregion
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
     /*  BAD SEEDS
