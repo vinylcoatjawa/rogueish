@@ -6,6 +6,7 @@ TagManager:
   tags:
   - Floor tile
   - Path tile
+  - Wall tile
   layers:
   - Default
   - TransparentFX
@@ -14,8 +15,8 @@ TagManager:
   - Water
   - UI
   - Path tile
-  - 
-  - 
+  - Floor
+  - Wall
   - 
   - 
   - 

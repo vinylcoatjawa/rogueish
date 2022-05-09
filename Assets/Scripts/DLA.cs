@@ -1,18 +1,15 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using NoiseUtils;
 using UnityEngine.InputSystem;
-using System;
 using Random = UnityEngine.Random;
 
-public class LevelGenerator : MonoBehaviour
+public class DLA : MonoBehaviour
 {
-    int size = 50;
+    int size;
     float tileSize = 1f;
     GameObject map;
-    Vector3 lowerLeftCorner, upperRightCorner;
-
     public static Dictionary<int, Vector3> cardinalDirections = new Dictionary<int, Vector3>() // static dict to hold cardinal direction
     {
         { 0, Vector3.forward },
@@ -20,54 +17,94 @@ public class LevelGenerator : MonoBehaviour
         { 2, Vector3.left },
         { 3, Vector3.right }
     };
+    
+    
+    PlayerInputActions inputAction;
+
+
     private void Awake()
     {
+        inputAction = new PlayerInputActions();
+        inputAction.Mouse.Enable();
+        inputAction.Mouse.LeftClick.started += LeftClicked;
+        inputAction.Mouse.RightClick.started += RightClicked;
         map = new GameObject("Map");
-        
     }
 
-    private void Start()
+    private void RightClicked(InputAction.CallbackContext obj)
     {
-        DLALevel();
-        Debug.Log("dla done");
-        Vector3 lowerLeftCorner, upperRightCorner;
-        GetCornerGridTiles(out lowerLeftCorner, out upperRightCorner);
-        Debug.Log(lowerLeftCorner + " as lowe left and " + upperRightCorner + " as upper right");
+        SmoothTheMap();
+    }
+
+    //private void Start()
+    //{
+
+    //    size = 100;
+
+    //    GameboardInit();
+
+    //    GameObject init = GameObject.CreatePrimitive(PrimitiveType.Cube);
+    //    init.transform.position = Vector3.zero;
+    //    init.GetComponent<Renderer>().material.color = Color.blue;
+    //    GameObject init_1 = GameObject.CreatePrimitive(PrimitiveType.Cube);
+    //    init_1.transform.position = Vector3.zero + new Vector3(1, 0, 0);
+    //    init_1.GetComponent<Renderer>().material.color = Color.blue;
+    //    GameObject init_2 = GameObject.CreatePrimitive(PrimitiveType.Cube);
+    //    init_2.transform.position = Vector3.zero + new Vector3(0, 0, 1);
+    //    init_2.GetComponent<Renderer>().material.color = Color.blue;
+    //}
+
+    private void GameboardInit()
+    {
+        for (int i = 0; i < 3; i++)
+        {
+            GameObject init = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        }
+    }
+
+    private void LeftClicked(InputAction.CallbackContext obj)
+    {
+        //SpawnParticle();
+        StartCoroutine(DLAAnimation());
     }
 
 
     IEnumerator DLAAnimation()
     {
-        for (int i = 0; i < 4500; i++)
+        for (int i = 0; i < 6000; i++)
         {
-            ScanFromBorder(size);
-            //yield return new WaitForSeconds(0.000001f);
-            yield return null;
+            //SpawnParticle();
+            ScanFromBorder(80);
+            yield return new WaitForSeconds(0.001f);
+
         }
-        SmoothTheMap();
-        GetCornerGridTiles(out lowerLeftCorner, out upperRightCorner);
     }
-    private void DLALevel()
+
+    private Vector3  GetRandomCardinalDirection()
     {
-        InitCubes();
-        //StartCoroutine(DLAAnimation());
-        GameObject[] floorTiles = GameObject.FindGameObjectsWithTag("Floor tile");
-        while (floorTiles.Length < 1000)
-        {
-            ScanFromBorder(size);
-            floorTiles = GameObject.FindGameObjectsWithTag("Floor tile");
-        }
+        int choice = Mathf.RoundToInt(Random.Range(0, 3));
+        return cardinalDirections[choice];
+    }
+
+    private Vector3 SpawnAtRandom(int width, int height)
+    {
+        int x, z;
+        x = Mathf.RoundToInt(Random.Range(-width, width + 1));
+        z = Mathf.RoundToInt(Random.Range(-height, height + 1));
+
+        return new Vector3(x, 0, z);
 
     }
-    private void InitCubes()
+
+    private void SpawGameTile(Vector3 spawnPosition)
     {
-        for (int i = 0; i < 3; i++)
-        {
-            GameObject init = GameObject.CreatePrimitive(PrimitiveType.Cube); // may change to generic object
-            init.transform.position = new Vector3(0, 0, i);
-            init.GetComponent<Renderer>().material.color = Color.black;
-        }
+        GameObject particle = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        particle.GetComponent<Renderer>().material.color = Color.black;
+        particle.transform.position = spawnPosition;
+        particle.transform.SetParent(map.transform);
+
     }
+
     private void ScanFromBorder(int size)
     {
         //pick direction to choose boder to cast from
@@ -101,10 +138,15 @@ public class LevelGenerator : MonoBehaviour
             chosenDirection = cardinalDirections[choice];
             TryToPlace(chosenPosition, chosenDirection);
         }
+
+        
+
+
     }
+
     private void TryToPlace(Vector3 startPos, Vector3 direction)
     {
-
+ 
         Ray ray = new Ray(startPos, direction);
 
         Vector3 stickLocation;
@@ -123,9 +165,12 @@ public class LevelGenerator : MonoBehaviour
         }
         //else { Debug.DrawRay(startPos, direction * 150, Color.red,0.1f); }
     }
+
+
     private int GetNeighbourCount(Vector3 position)
     {
         int neighbourCount = 0;
+        
         foreach (var direction in cardinalDirections)
         {
             Ray ray = new Ray(position, direction.Value);
@@ -136,8 +181,28 @@ public class LevelGenerator : MonoBehaviour
         }
         return neighbourCount;
     }
+
+
     private void SmoothTheMap()
     {
+        Vector3 minmaxX = Vector3.zero;
+        Vector3 minmaxZ = Vector3.zero;
+        GameObject[] tiles = GameObject.FindGameObjectsWithTag("Floor tile");
+
+        //foreach (var tile in tiles)
+        //{
+        //    {
+        //        if (tile.transform.position.x <= minmaxX.x) { minmaxX.x = (int)tile.transform.position.x; }
+        //        if (tile.transform.position.z <= minmaxZ.z) { minmaxZ.z = (int)tile.transform.position.z; }
+
+        //        if (tile.transform.position.x > minmaxX.x) { minmaxX.x = (int)tile.transform.position.x; }
+        //        if (tile.transform.position.z > minmaxZ.z) { minmaxZ.z = (int)tile.transform.position.z; }
+        //    }
+        //}
+
+        Debug.Log(minmaxX + " as x and " + minmaxZ + " as z");
+
+        
         for (int x = -size; x < size; x++)
         {
             for (int z = -size; z < size; z++)
@@ -157,22 +222,14 @@ public class LevelGenerator : MonoBehaviour
                 }
             }
         }
-    }
-    private void GetCornerGridTiles( out Vector3 lowerLeftCorner, out Vector3 upperRightCorner)
-    {
-        Vector3 minCorner = Vector3.zero;
-        Vector3 maxCorner = Vector3.zero;
-        GameObject[] floorTiles = GameObject.FindGameObjectsWithTag("Floor tile");
-        foreach (var floorTile in floorTiles)
-        {
-            if (floorTile.transform.position.x <= minCorner.x) { minCorner.x = (int)floorTile.transform.position.x; }
-            if (floorTile.transform.position.z <= minCorner.z) { minCorner.z = (int)floorTile.transform.position.z; }
 
-            if (floorTile.transform.position.x > maxCorner.x) { maxCorner.x = (int)floorTile.transform.position.x; }
-            if (floorTile.transform.position.z > maxCorner.z) { maxCorner.z = (int)floorTile.transform.position.z; }
-        }
-        lowerLeftCorner = new Vector3(minCorner.x, 0, minCorner.z);
-        upperRightCorner = new Vector3(maxCorner.x, 0, maxCorner.z);
-        
     }
+
+
+
+
 }
+
+
+
+
