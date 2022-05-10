@@ -1,54 +1,55 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-
 public class Test : MonoBehaviour
 {
-
-
-
-    PlayerInputActions inputAction;
-    private Grid tileGrid;
-
-    LevelGenerator level;
+    PlayerInputActions playerInputActions;
+    Grid grid;
 
 
     private void Awake()
     {
-        inputAction = new PlayerInputActions();
+        playerInputActions = new PlayerInputActions();
+        playerInputActions.Mouse.Enable();
+        playerInputActions.Mouse.LeftClick.started += LeftCLicked;
+        playerInputActions.Mouse.RightClick.started += RightClicked;
 
-        
+
     }
 
-    // Start is called before the first frame update
+    private void RightClicked(InputAction.CallbackContext obj)
+    {
+        Vector2 mousePos = Mouse.current.position.ReadValue();
+        Vector3 screenPoint = new Vector3(mousePos.x, mousePos.y, 60); // 60 depends on the cams Z position
+        Vector3 worldPos = GetMouseWorldPosition(Camera.main, screenPoint);
+        Debug.Log(grid.GetValue(worldPos));
+    }
+
+    private void LeftCLicked(InputAction.CallbackContext obj)
+    {
+
+        
+        Vector2 mousePos = Mouse.current.position.ReadValue();
+        Vector3 screenPoint = new Vector3(mousePos.x, mousePos.y, 60); // 60 depends on the cams Z position
+        Vector3 worldPos = GetMouseWorldPosition(Camera.main, screenPoint);
+        grid.SetValue(worldPos, 43);
+    }
+
     void Start()
     {
 
-
-        uint randomSeed = GetRandomSeed();//2896306688;// GetRandomSeed();4073934336,1617799936,2814833152
-        inputAction.Mouse.Enable();
-        inputAction.Mouse.LeftClick.started += LeftClicked;
-
-
+        grid = new Grid(3, 4, 10f, new Vector3(20,0));
+        
     }
 
-    private void LeftClicked(InputAction.CallbackContext obj)
+    private Vector3 GetMouseWorldPosition(Camera worldCamera, Vector3 screenPoint)
     {
-
+        Vector3 worldPosition = worldCamera.ScreenToWorldPoint(screenPoint);
+        return worldPosition;
     }
-
-    private uint GetRandomSeed()
-    {
-        return (uint)Random.Range(1, uint.MaxValue); // 3363111936; 3687977984;//
-    }
-
-   
-
-
-    
-
 
 
 }
