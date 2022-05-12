@@ -16,6 +16,9 @@ namespace NoiseUtils
 
         const uint prime = 0b11101110011010110010101101011101;
 
+
+
+
         /* 1D */
         public uint Get1DNoiseUint (uint position, uint seed)
         {
@@ -29,6 +32,12 @@ namespace NoiseUtils
             mangled ^= (mangled << 8);
 
             return mangled;
+        }
+
+        public uint NoiseRandomRange(uint rangeFrom, uint rangeTo, uint position, uint seed)
+        {
+            uint mangled = Get1DNoiseUint(position, seed);
+            return rangeFrom + mangled % (rangeTo - rangeFrom);
         }
 
         public float Get1DNoiseZeroToOne (uint position, uint seed)
