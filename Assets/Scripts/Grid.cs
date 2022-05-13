@@ -13,7 +13,8 @@ public class Grid<TGridObject>
     Vector3 originPosition;
     TGridObject[,] gridArray;
     TextMesh[,] debugTestArray;
-    
+    bool allowDebug = false;
+
 
     public Grid(int width, int height, float cellSize, Vector3 originPosition, Func<TGridObject> createGridObject)
     {
@@ -37,7 +38,7 @@ public class Grid<TGridObject>
 
     #region DEBUG-ARRAY
         debugTestArray = new TextMesh[width, height];
-        bool allowDebug = true;
+        
         if (allowDebug)
         {
             for (int x = 0; x < gridArray.GetLength(0); x++)
@@ -68,7 +69,7 @@ public class Grid<TGridObject>
         if (x >= 0 && y >= 0 && x < width && y < height)
         {
             gridArray[x, y] = value;
-            debugTestArray[x, y].text = gridArray[x, y].ToString();
+            if(allowDebug) debugTestArray[x, y].text = gridArray[x, y]?.ToString();
         }
     }
     public TGridObject GetGridObject(int x, int y) // getting object from grid position

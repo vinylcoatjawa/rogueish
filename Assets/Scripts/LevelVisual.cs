@@ -4,12 +4,14 @@ using UnityEngine;
 
 public class LevelVisual : MonoBehaviour
 {
-    private Grid<int> grid;
+    private Grid<bool> grid;
     private Mesh mesh;
-    public void SetGrid(Grid<int> grid)
+    [SerializeField] private Material walkable;
+    [SerializeField] private Material nonWalkable;
+    public void SetGrid(Grid<bool> grid)
     {
         this.grid = grid;
-        UpdateMapVisual();
+        //UpdateMapVisual();
     }
 
     private void Awake()
@@ -17,7 +19,7 @@ public class LevelVisual : MonoBehaviour
         mesh = new Mesh();
         GetComponent<MeshFilter>().mesh = mesh;
     }
-    private void UpdateMapVisual()
+    public void UpdateMapVisual()
     {
         CreateEmptyMeshArrays(grid.GetWitdth() * grid.GetHeight(), out Vector3[] vertices, out Vector2[] uvs, out int[] triangles);
 
@@ -28,7 +30,16 @@ public class LevelVisual : MonoBehaviour
                 int index = x * grid.GetHeight() + y;
                 Vector3 quadSize = new Vector3(1, 1) * grid.GetCellSize();
 
-                AddToMeshArrays(vertices, uvs, triangles, index, grid.GetWorldPosition(x, y) + quadSize * .5f, 0f, quadSize, Vector2.zero, Vector2.one);
+                if (grid.GetGridObject(x, y) == true)
+                {
+                    GetComponent<MeshRenderer>().material = walkable;
+                    AddToMeshArrays(vertices, uvs, triangles, index, grid.GetWorldPosition(x, y) + quadSize * .5f, 0f, quadSize, Vector2.zero, Vector2.one);
+                }
+                //else
+                //{
+                //    GetComponent<MeshRenderer>().material = nonWalkable;
+                //    AddToMeshArrays(vertices, uvs, triangles, index, grid.GetWorldPosition(x, y) + quadSize * .5f, 0f, quadSize, Vector2.zero, Vector2.one);
+                //}
             }
         }
 
@@ -47,7 +58,6 @@ public class LevelVisual : MonoBehaviour
         uvs = new Vector2[4 * quadCount];
         triangles = new int[6 * quadCount];
     }
-
     public static void AddToMeshArrays(Vector3[] vertices, Vector2[] uvs, int[] triangles, int index, Vector3 pos, float rot, Vector3 baseSize, Vector2 uv00, Vector2 uv11)
     {
         //Relocate vertices
@@ -93,7 +103,6 @@ public class LevelVisual : MonoBehaviour
         triangles[tIndex + 5] = vIndex2;
 
     }
-
     private static Quaternion GetQuaternionEuler(float rotFloat)
     {
         int rot = Mathf.RoundToInt(rotFloat);
@@ -103,7 +112,6 @@ public class LevelVisual : MonoBehaviour
         if (cachedQuaternionEulerArr == null) CacheQuaternionEuler();
         return cachedQuaternionEulerArr[rot];
     }
-
     private static Quaternion[] cachedQuaternionEulerArr;
     private static void CacheQuaternionEuler()
     {
