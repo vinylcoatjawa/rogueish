@@ -8,17 +8,20 @@ using NoiseUtils;
 public class Test : MonoBehaviour
 {
     PlayerInputActions playerInputActions;
-    Grid<int> grid;
+    //Grid<int> grid;
     [SerializeField] private LevelVisual levelVisual;
     DLA dla = new DLA();
     Grid<bool> dlaGrid;
     Noise noise = new Noise();
-
+    Dictionary<int, uint> dungeonDict;
+    LevelManager currentLevel;
+    DungeonManager dungeonManager = new DungeonManager();
 
     int gridWidth = 50;
     int gridHeight = 50;
     float cellSize = 2f;
     Vector3 startPos = Vector3.zero;
+
 
     private void Awake()
     {
@@ -30,22 +33,19 @@ public class Test : MonoBehaviour
 
     }
 
-
-
-
-
     void Start()
     {
-        grid = new Grid<int>(gridWidth, gridHeight, cellSize, startPos, () => 0);
-        dlaGrid = new Grid<bool>(gridWidth, gridHeight, cellSize, startPos, () => false);
-        dla.SetGrid(dlaGrid);
-        
+        //grid = new Grid<int>(gridWidth, gridHeight, cellSize, startPos, () => 0);
+        //dlaGrid = new Grid<bool>(gridWidth, gridHeight, cellSize, startPos, () => false);
+        //dla.SetGrid(dlaGrid);
 
-        levelVisual.SetGrid(dlaGrid);
+        dungeonDict = dungeonManager.GenerateDungeonDict((uint)1);
 
-       
-
-     
+        for (int level = 0; level < 1; level++)
+        {
+            currentLevel = new LevelManager(level, dungeonDict[level]);
+            dlaGrid = currentLevel.GenerateLevel();
+        }
 
     }
 
@@ -60,6 +60,9 @@ public class Test : MonoBehaviour
         //Vector3 screenPoint = new Vector3(mousePos.x, mousePos.y, 60); // 60 depends on the cams Z position
         //Vector3 worldPos = GetMouseWorldPosition(Camera.main, screenPoint);
         //Debug.Log(grid.GetGridObject(worldPos));
+
+
+
         levelVisual.SetGrid(dlaGrid);
         levelVisual.UpdateMapVisual();
     }
@@ -69,8 +72,10 @@ public class Test : MonoBehaviour
         //Vector3 screenPoint = new Vector3(mousePos.x, mousePos.y, 60); // 60 depends on the cams Z position
         //Vector3 worldPos = GetMouseWorldPosition(Camera.main, screenPoint);
         //grid.SetGridObject(worldPos, 43);
-        dlaGrid = dla.GenerateWalkable();
-        //levelVisual.UpdateMapVisual();
+
+
+
+        //dlaGrid = dla.GenerateWalkable();       
     }
 
 }

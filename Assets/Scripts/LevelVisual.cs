@@ -6,8 +6,9 @@ public class LevelVisual : MonoBehaviour
 {
     private Grid<bool> grid;
     private Mesh mesh;
-    [SerializeField] private Material walkable;
-    [SerializeField] private Material nonWalkable;
+
+    [SerializeField] private Material[] mats;
+
     public void SetGrid(Grid<bool> grid)
     {
         this.grid = grid;
@@ -22,6 +23,7 @@ public class LevelVisual : MonoBehaviour
     public void UpdateMapVisual()
     {
         CreateEmptyMeshArrays(grid.GetWitdth() * grid.GetHeight(), out Vector3[] vertices, out Vector2[] uvs, out int[] triangles);
+       
 
         for (int x = 0; x < grid.GetWitdth(); x++)
         {
@@ -29,16 +31,24 @@ public class LevelVisual : MonoBehaviour
             {
                 int index = x * grid.GetHeight() + y;
                 Vector3 quadSize = new Vector3(1, 1) * grid.GetCellSize();
-
-                if (grid.GetGridObject(x, y) == true)
+                //Debug.Log("On " + x + ", " + y + " there is a " + grid.GetGridObject(x, y));
+                if (grid.GetGridObject(x, y))
                 {
-                    GetComponent<MeshRenderer>().material = walkable;
-                    AddToMeshArrays(vertices, uvs, triangles, index, grid.GetWorldPosition(x, y) + quadSize * .5f, 0f, quadSize, Vector2.zero, Vector2.one);
+
+                    //AddToMeshArrays(vertices, uvs, triangles, index, grid.GetWorldPosition(x, y) + quadSize * .5f, 0f, quadSize, Vector2.zero, Vector2.one);
+                    //GetComponent<MeshRenderer>().material = mats[0];
+                    GameObject floor = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                    floor.transform.position = new Vector3(x, 0, y);
+                    floor.GetComponent<Renderer>().material.color = Color.grey;
+
                 }
                 //else
                 //{
-                //    GetComponent<MeshRenderer>().material = nonWalkable;
                 //    AddToMeshArrays(vertices, uvs, triangles, index, grid.GetWorldPosition(x, y) + quadSize * .5f, 0f, quadSize, Vector2.zero, Vector2.one);
+                //    GetComponent<MeshRenderer>().material = mats[1];
+                //    //GameObject floor = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                //    //floor.transform.position = new Vector3(x, y, 0);
+                //    //floor.GetComponent<Renderer>().material.color = Color.black;
                 //}
             }
         }
@@ -46,6 +56,9 @@ public class LevelVisual : MonoBehaviour
         mesh.vertices = vertices;
         mesh.uv = uvs;
         mesh.triangles = triangles;
+
+  
+
 
     }
 
@@ -127,3 +140,4 @@ public class LevelVisual : MonoBehaviour
 
     #endregion
 }
+
