@@ -14,8 +14,10 @@ public class Test : MonoBehaviour
     Grid<bool> dlaGrid;
     Noise noise = new Noise();
     Dictionary<int, uint> dungeonDict;
-    LevelManager currentLevel;
-    DungeonManager dungeonManager = new DungeonManager();
+    public LevelManager currentLevel;
+    DungeonManager dungeonManager;
+
+    
 
     int gridWidth = 50;
     int gridHeight = 50;
@@ -31,6 +33,8 @@ public class Test : MonoBehaviour
         playerInputActions.Mouse.RightClick.started += RightClicked;
 
 
+        //dungeonDict = dungeonManager.GenerateDungeonDict((uint)1);
+
     }
 
     void Start()
@@ -39,12 +43,13 @@ public class Test : MonoBehaviour
         //dlaGrid = new Grid<bool>(gridWidth, gridHeight, cellSize, startPos, () => false);
         //dla.SetGrid(dlaGrid);
 
-        dungeonDict = dungeonManager.GenerateDungeonDict((uint)1);
+        
+        
 
         for (int level = 0; level < 1; level++)
         {
-            currentLevel = new LevelManager(level, dungeonDict[level]);
-            dlaGrid = currentLevel.GenerateLevel();
+            //currentLevel = new LevelManager(level, dungeonDict[level]);
+            //dlaGrid = currentLevel.GenerateLevel();
         }
 
     }

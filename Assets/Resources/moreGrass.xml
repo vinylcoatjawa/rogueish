@@ -1,0 +1,22 @@
+<set>
+  <tiles>
+<tile name="Overworld/Grass" symmetry="X" weight="1.0"/>
+<tile name="Overworld/Mountains" symmetry="X" weight="1.0"/>
+<tile name="Overworld/Shore" symmetry="X" weight="1.0"/>
+	</tiles>
+<neighbors>  <neighbor left="Overworld/Mountains 0" right="Overworld/Grass 0"/>
+  <neighbor left="Overworld/Mountains 1" right="Overworld/Grass 1"/>
+  <neighbor left="Overworld/Grass 1" right="Overworld/Mountains 1"/>
+  <neighbor left="Overworld/Grass 0" right="Overworld/Grass 0"/>
+  <neighbor left="Overworld/Grass 1" right="Overworld/Grass 1"/>
+  <neighbor left="Overworld/Grass 0" right="Overworld/Mountains 0"/>
+  <neighbor left="Overworld/Mountains 0" right="Overworld/Mountains 0"/>
+  <neighbor left="Overworld/Mountains 1" right="Overworld/Mountains 1"/>
+  <neighbor left="Overworld/Shore 0" right="Overworld/Shore 0"/>
+  <neighbor left="Overworld/Shore 1" right="Overworld/Shore 1"/>
+  <neighbor left="Overworld/Grass 0" right="Overworld/Shore 0"/>
+  <neighbor left="Overworld/Grass 1" right="Overworld/Shore 1"/>
+  <neighbor left="Overworld/Shore 1" right="Overworld/Grass 1"/>
+  <neighbor left="Overworld/Shore 0" right="Overworld/Grass 0"/>
+	</neighbors>
+</set>

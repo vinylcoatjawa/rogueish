@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using NoiseUtils;
 
-public class DungeonManager 
+public class DungeonManager : MonoBehaviour
 {
     // get dungeon seed created from world seed
     // decide the number of levels and their respective seeds the dungeon will have
@@ -12,7 +12,18 @@ public class DungeonManager
     //uint worldSeed = 123456789;
     Noise noise = new Noise();
     private Dictionary<int, uint> dungeonDict = new Dictionary<int, uint>();
+    GameObject dungeons;
+    int numberOfDungeons = 2;
+    
 
+    private void Start()
+    {
+        dungeons = new GameObject("Dungeons");
+        for (int dungeon = 0; dungeon < numberOfDungeons; dungeon++)
+        {
+
+        }
+    }
     public Dictionary<int, uint> GenerateDungeonDict(uint seed)
     {
         // decide the number of levels
