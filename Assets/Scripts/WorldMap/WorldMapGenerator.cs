@@ -1,15 +1,11 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.InputSystem;
-using Random = UnityEngine.Random;
 
 public class WorldMapGenerator : MonoBehaviour
 {
     public enum DrawMode { NoiseMap, ColourMap };
     public DrawMode drawMode;
     
-    public int mapWidth, mapHeight;
+    public int mapWidth = 16, mapHeight = 9;
     public float noiseScale;
     public bool autoUpdate;
 
@@ -23,7 +19,7 @@ public class WorldMapGenerator : MonoBehaviour
 
     public TerrainType[] regions;
 
-    public void GenerateMap()
+    public Grid<float> GenerateMap()
     {
         Grid<float> noiseMap = PerlinMap.GenerateNoiseMap(mapWidth, mapHeight, noiseScale, octaves, persistance, lacunarity, seed, offset);
 
@@ -46,6 +42,7 @@ public class WorldMapGenerator : MonoBehaviour
         }
 
         MapDisplay display = FindObjectOfType<MapDisplay>();
+        //MapDisplay display = GetComponent<MapDisplay>();
         if (drawMode == DrawMode.NoiseMap)
         {
             display.DrawTexture(TextureGenerator.TextureFromHeightMap(noiseMap));
@@ -54,6 +51,8 @@ public class WorldMapGenerator : MonoBehaviour
         {
             display.DrawTexture(TextureGenerator.TextureFromColourMap(colorMap, mapWidth, mapHeight));
         }
+
+        return noiseMap;
 
     }
 

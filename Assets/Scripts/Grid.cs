@@ -16,7 +16,7 @@ public class Grid<TGridObject>
     bool allowDebug = false;
 
 
-    public Grid(int width, int height, float cellSize, Vector3 originPosition, Func<TGridObject> createGridObject)
+    public Grid(int width, int height, float cellSize, Vector3 originPosition, Func<TGridObject> createGridObject) // last parameter is a function to create default object
     {
         /* setting instance parameters */
         this.width = width;
@@ -41,11 +41,13 @@ public class Grid<TGridObject>
         
         if (allowDebug)
         {
+            GameObject debugGrid = new GameObject("debug grid");
             for (int x = 0; x < gridArray.GetLength(0); x++)
             {
                 for (int y = 0; y < gridArray.GetLength(1); y++)
                 {
                     debugTestArray[x, y] = CreateWorldText(gridArray[x, y]?.ToString(), null, GetWorldPosition(x, y) + middleOffset, 20, Color.black, TextAnchor.MiddleCenter);
+                    debugTestArray[x, y].gameObject.transform.SetParent(debugGrid.transform);
 
                     Debug.DrawLine(GetWorldPosition(x, y), GetWorldPosition(x, y + 1), Color.black, 100f);
                     Debug.DrawLine(GetWorldPosition(x, y), GetWorldPosition(x + 1, y), Color.black, 100f);
@@ -58,6 +60,7 @@ public class Grid<TGridObject>
 
     }
     #endregion
+
 
 
     public Vector3 GetWorldPosition(int x, int y) // convert from grid space to world space
